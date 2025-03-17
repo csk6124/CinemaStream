@@ -3,6 +3,15 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertCourseSchema, insertQuestionSchema } from "@shared/schema";
 
+// Middleware to check if user is authenticated
+const requireAuth = (req: any, res: any, next: any) => {
+  const userId = req.headers['x-replit-user-id'];
+  if (!userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  next();
+};
+
 // Middleware to check if user is admin
 const requireAdmin = async (req: any, res: any, next: any) => {
   const userId = req.session?.userId;
