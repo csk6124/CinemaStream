@@ -17,13 +17,13 @@ export const VideoHero = React.memo(() => {
       window.onYouTubeIframeAPIReady = () => {
         if (playerRef.current && !playerInstanceRef.current) {
           playerInstanceRef.current = new window.YT.Player('hero-player', {
-            videoId: 'ewmvkZqSWmo',
+            videoId: 'ntzJPOL_mGQ',
             playerVars: {
               autoplay: 1,
               controls: 0,
               mute: 1,
               loop: 1,
-              playlist: 'ewmvkZqSWmo',
+              playlist: 'ntzJPOL_mGQ',
               playsinline: 1,
               rel: 0,
               modestbranding: 1
