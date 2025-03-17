@@ -7,7 +7,7 @@ export interface TMDBMovie {
   id: number;
   title: string;
   overview: string;
-  poster_path: string;
+  poster_path: string | null;
   release_date: string;
   vote_average: number;
   genre_ids: number[];
@@ -26,6 +26,7 @@ export class TMDBService {
 
   async getPopularMovies(page: number = 1): Promise<TMDBMovie[]> {
     try {
+      console.log('Fetching popular movies from TMDB...');
       const response = await axios.get(`${BASE_URL}/movie/popular`, {
         params: {
           api_key: TMDB_API_KEY,
@@ -33,6 +34,14 @@ export class TMDBService {
           page
         }
       });
+
+      // 응답 데이터 로깅
+      console.log('TMDB API Response:', {
+        totalResults: response.data.total_results,
+        totalPages: response.data.total_pages,
+        sampleMovie: response.data.results[0]
+      });
+
       return response.data.results;
     } catch (error) {
       console.error('Error fetching popular movies:', error);
@@ -42,12 +51,21 @@ export class TMDBService {
 
   async getMovieDetails(movieId: number): Promise<TMDBMovie | null> {
     try {
+      console.log(`Fetching details for movie ID ${movieId}...`);
       const response = await axios.get(`${BASE_URL}/movie/${movieId}`, {
         params: {
           api_key: TMDB_API_KEY,
           language: 'ko-KR'
         }
       });
+
+      // 응답 데이터 로깅
+      console.log('Movie details:', {
+        id: response.data.id,
+        title: response.data.title,
+        posterPath: response.data.poster_path
+      });
+
       return response.data;
     } catch (error) {
       console.error('Error fetching movie details:', error);
@@ -83,6 +101,22 @@ export class TMDBService {
     } catch (error) {
       console.error('Error searching movies:', error);
       return [];
+    }
+  }
+
+  // 테스트 목적의 메서드
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await axios.get(`${BASE_URL}/configuration`, {
+        params: {
+          api_key: TMDB_API_KEY
+        }
+      });
+      console.log('TMDB Configuration:', response.data);
+      return true;
+    } catch (error) {
+      console.error('TMDB connection test failed:', error);
+      return false;
     }
   }
 }

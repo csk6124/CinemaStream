@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
         year: new Date(movie.release_date).getFullYear(),
         rating: movie.vote_average / 2, // TMDB는 10점 만점, 우리는 5점 만점
-        genres: movie.genres?.map(g => g.name) || []
+        genres: movie.genre_ids?.map(g => g.toString()) || []
       };
 
       res.json(formattedMovie);
@@ -161,25 +161,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.headers['x-replit-user-id'] as string);
       const limit = parseInt(req.query.limit as string) || 10;
 
-      // 사용자의 시청 기록 확인
-      const watchHistory = await storage.getUserWatchHistory(userId);
-      let recommendations = [];
-
-      if (watchHistory.length > 0) {
-        // 시청 기록이 있는 경우, 협업 필터링 기반 추천
-        recommendations = await recommendationEngine.getPersonalizedRecommendations(userId, limit);
-      } else {
-        // 시청 기록이 없는 경우, 인기 영화 추천
-        const popularMovies = await tmdbService.getPopularMovies();
-        recommendations = popularMovies.slice(0, limit).map(movie => ({
-          id: movie.id,
-          title: movie.title,
-          description: movie.overview,
-          posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
-          year: new Date(movie.release_date).getFullYear(),
-          rating: movie.vote_average / 2
-        }));
-      }
+      // 시청 기록이 없는 경우, 인기 영화 추천
+      const popularMovies = await tmdbService.getPopularMovies();
+      const recommendations = popularMovies.slice(0, limit).map(movie => ({
+        id: movie.id,
+        title: movie.title,
+        description: movie.overview,
+        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+        year: new Date(movie.release_date).getFullYear(),
+        rating: movie.vote_average / 2
+      }));
 
       res.json(recommendations);
     } catch (error) {
@@ -219,6 +210,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error recording watch history:", error);
       res.status(500).json({ error: "Failed to record watch history" });
+    }
+  });
+
+  // TMDB API 테스트 엔드포인트
+  app.get("/api/test/tmdb", async (_req, res) => {
+    try {
+      // API 연결 테스트
+      const isConnected = await tmdbService.testConnection();
+      if (!isConnected) {
+        return res.status(500).json({ error: "TMDB API connection failed" });
+      }
+
+      // 인기 영화 가져오기 테스트
+      const movies = await tmdbService.getPopularMovies(1);
+      if (!movies.length) {
+        return res.status(500).json({ error: "Failed to fetch popular movies" });
+      }
+
+      // 첫 번째 영화의 상세 정보 가져오기 테스트
+      const movieDetails = await tmdbService.getMovieDetails(movies[0].id);
+      if (!movieDetails) {
+        return res.status(500).json({ error: "Failed to fetch movie details" });
+      }
+
+      res.json({
+        success: true,
+        connection: isConnected,
+        sampleMovie: {
+          ...movieDetails,
+          fullPosterUrl: movieDetails.poster_path
+            ? `https://image.tmdb.org/t/p/w500${movieDetails.poster_path}`
+            : null
+        }
+      });
+    } catch (error) {
+      console.error("TMDB API test failed:", error);
+      res.status(500).json({ error: "TMDB API test failed" });
     }
   });
 

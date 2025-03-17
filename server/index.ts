@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// 로깅 미들웨어
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -37,28 +38,24 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // 1. API 라우트 등록
   const server = await registerRoutes(app);
 
+  // 2. 에러 핸들러
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    console.error(`Error handling request:`, err);
+    res.status(status).json({ error: message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // 3. 정적 파일 서빙 설정 (마지막에 위치)
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = 5000;
   server.listen({
     port,
