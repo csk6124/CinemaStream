@@ -105,6 +105,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Movie routes
+  app.get("/api/movies/:id", async (req, res) => {
+    const movieId = req.params.id;
+    // 임시 데이터
+    const movie = {
+      id: movieId,
+      title: "인터스텔라",
+      description: "인류의 미래를 위해 새로운 거주지를 찾아 우주로 떠나는 탐험대의 이야기",
+      posterUrl: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0",
+      year: 2014,
+      director: "크리스토퍼 놀란",
+      cast: ["매튜 맥커너히", "앤 해서웨이"],
+      rating: 4.8
+    };
+    res.json(movie);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
