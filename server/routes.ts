@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: movie.id,
         title: movie.title,
         description: movie.overview,
-        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "https://via.placeholder.com/500x750?text=No+Poster",
         year: new Date(movie.release_date).getFullYear(),
         rating: movie.vote_average / 2
       }));
