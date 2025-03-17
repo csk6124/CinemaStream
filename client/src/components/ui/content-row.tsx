@@ -27,7 +27,7 @@ const ContentCard = React.memo(({ item }: { item: Movie }) => {
   const [showBlurhash, setShowBlurhash] = useState(true);
 
   // 기본 이미지 URL (포스터가 없는 경우 사용)
-  const defaultImageUrl = "https://via.placeholder.com/500x750?text=No+Poster";
+  const defaultImageUrl = "https://placehold.co/500x750/222222/FFFFFF/png?text=No+Poster";
   const defaultBlurhash = "L5H2EC=PM+yV0g-mq.wG9c010J}I";  // 어두운 그레이 블러해시
 
   // TMDB 이미지 URL 처리
