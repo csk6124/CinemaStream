@@ -12,9 +12,9 @@ on:
         - production
         - preview
       projectName:
-        description: 'Cinemastream Project Name'
+        description: 'Project Name (lowercase, up to 100 chars, only letters, numbers, ., _, -)'
         required: true
-        default: 'cinemastream'
+        default: 'cinemastream-app'
 
 jobs:
   deploy:
