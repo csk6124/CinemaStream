@@ -1,4 +1,6 @@
 
+![Walter White](https://i.imgur.com/YX2yfZE.jpg)
+
 # Netflix Movie Clone
 
 Next.js와 Express를 사용한 Netflix 스타일의 영화 스트리밍 서비스 클론 프로젝트입니다.
