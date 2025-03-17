@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "./card";
 import { ScrollArea, ScrollBar } from "./scroll-area";
 
@@ -14,22 +15,27 @@ interface ContentRowProps {
 }
 
 // 개별 콘텐츠 카드 컴포넌트 메모이제이션
-const ContentCard = React.memo(({ item }: { item: Content }) => (
-  <Card 
-    key={item.id}
-    className="min-w-[200px] hover:scale-105 transition-transform cursor-pointer"
-  >
-    <CardContent className="p-0">
-      <img 
-        src={item.image} 
-        alt={item.title}
-        className="w-full h-[300px] object-cover rounded-md"
-        loading="lazy"
-        decoding="async"
-      />
-    </CardContent>
-  </Card>
-));
+const ContentCard = React.memo(({ item }: { item: Content }) => {
+  const [, setLocation] = useLocation();
+
+  return (
+    <Card 
+      key={item.id}
+      className="min-w-[200px] hover:scale-105 transition-transform cursor-pointer"
+      onClick={() => setLocation(`/movie/${item.id}`)}
+    >
+      <CardContent className="p-0">
+        <img 
+          src={item.image} 
+          alt={item.title}
+          className="w-full h-[300px] object-cover rounded-md"
+          loading="lazy"
+          decoding="async"
+        />
+      </CardContent>
+    </Card>
+  );
+});
 
 ContentCard.displayName = "ContentCard";
 
