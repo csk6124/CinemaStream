@@ -25,15 +25,15 @@ const ContentCard = React.memo(({ item }: { item: Movie }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [showBlurhash, setShowBlurhash] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false); // Added state to track image load
 
   // 기본 이미지 URL (포스터가 없는 경우 사용)
   const defaultImageUrl = "https://placehold.co/500x750/222222/FFFFFF/png?text=No+Poster";
   const defaultBlurhash = "L5H2EC=PM+yV0g-mq.wG9c010J}I";  // 어두운 그레이 블러해시
 
-  // TMDB 이미지 URL 처리
+  // TMDB 이미지 URL 처리.  No change needed here.  The original code already handles missing poster URLs.
   const imageUrl = item.posterUrl || defaultImageUrl;
 
-  console.log('Loading image:', imageUrl); // 디버깅용 로그
 
   return (
     <Card 
@@ -66,18 +66,19 @@ const ContentCard = React.memo(({ item }: { item: Movie }) => {
           loading="lazy"
           decoding="async"
           onLoad={() => {
-            console.log('Image loaded successfully:', imageUrl); // 디버깅용 로그
+            console.log('Image loaded successfully:', imageUrl); 
             setIsLoading(false);
-            // 이미지가 로드된 후 약간의 지연을 두고 블러해시를 제거
+            setImageLoaded(true); // Update the imageLoaded state
             setTimeout(() => setShowBlurhash(false), 100);
           }}
           onError={(e) => {
-            console.error('Image load error:', imageUrl); // 디버깅용 로그
+            console.error('Image load error:', imageUrl); 
             const target = e.target as HTMLImageElement;
             target.src = defaultImageUrl;
             setHasError(true);
             setIsLoading(false);
             setShowBlurhash(false);
+            setImageLoaded(true); // Update the imageLoaded state
           }}
         />
 
