@@ -1,31 +1,49 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Button } from "./button";
 import { Play, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
-export function VideoHero() {
+export const VideoHero = React.memo(() => {
   const playerRef = useRef<HTMLDivElement>(null);
+  const playerInstanceRef = useRef<any>(null);
+
+  const initializeYouTubePlayer = useCallback(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+      window.onYouTubeIframeAPIReady = () => {
+        if (playerRef.current && !playerInstanceRef.current) {
+          playerInstanceRef.current = new window.YT.Player('hero-player', {
+            videoId: 'ewmvkZqSWmo',
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              mute: 1,
+              loop: 1,
+              playlist: 'ewmvkZqSWmo',
+              playsinline: 1,
+              rel: 0,
+              modestbranding: 1
+            }
+          });
+        }
+      };
+    }
+  }, []);
 
   useEffect(() => {
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    initializeYouTubePlayer();
 
-    window.onYouTubeIframeAPIReady = () => {
-      new window.YT.Player('hero-player', {
-        videoId: 'ewmvkZqSWmo',
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          mute: 1,
-          loop: 1,
-          playlist: 'ewmvkZqSWmo',
-          playsinline: 1
-        }
-      });
+    return () => {
+      if (playerInstanceRef.current) {
+        playerInstanceRef.current.destroy();
+        playerInstanceRef.current = null;
+      }
     };
-  }, []);
+  }, [initializeYouTubePlayer]);
 
   return (
     <div className="relative w-full h-[85vh] overflow-hidden rounded-b-[2rem] shadow-2xl">
@@ -70,4 +88,6 @@ export function VideoHero() {
       </motion.div>
     </div>
   );
-}
+});
+
+VideoHero.displayName = "VideoHero";

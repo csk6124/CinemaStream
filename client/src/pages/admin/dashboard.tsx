@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,7 @@ import {
   Play,
   Eye
 } from "lucide-react";
-import { analytics, performance, startPerformanceTrace } from "@/lib/firebase";
-import { getAnalytics, logEvent } from "firebase/analytics";
+import { logAnalyticsEvent } from "@/lib/firebase";
 
 // 분석 카드 컴포넌트 메모이제이션
 const AnalyticsCard = React.memo(({ 
@@ -98,60 +97,50 @@ export default function AdminDashboard() {
       return;
     }
 
-    const pageLoadTrace = startPerformanceTrace('admin_dashboard_load');
+    const startTime = performance.now();
 
     // Firebase Analytics 데이터 페이지 로드시 기록
-    if (analytics) {
-      logEvent(analytics, 'admin_dashboard_view');
-    }
+    logAnalyticsEvent('admin_dashboard_view', {
+      loadTime: performance.now() - startTime
+    });
 
     const fetchData = async () => {
       try {
-        const activeUsers = await fetchActiveUsers();
-        const pageViews = await fetchPageViews();
-        const videoPlays = await fetchVideoPlays();
+        const [activeUsers, pageViews, videoPlays] = await Promise.all([
+          fetchActiveUsers(),
+          fetchPageViews(),
+          fetchVideoPlays()
+        ]);
 
         setAnalyticsData({ activeUsers, pageViews, videoPlays });
-        pageLoadTrace?.stop();
+
+        // 데이터 로드 시간 측정
+        logAnalyticsEvent('analytics_data_load', {
+          duration: performance.now() - startTime
+        });
       } catch (error) {
         console.error("Error fetching analytics data:", error);
-        pageLoadTrace?.stop();
       }
     };
 
     fetchData();
   }, [user, userLoading, setLocation]);
 
-  // 데이터 페칭 함수들 메모이제이션
-  const fetchActiveUsers = useMemo(() => async () => {
-    const trace = startPerformanceTrace('fetch_active_users');
-    try {
-      // Implement your Firebase logic
-      return 0;
-    } finally {
-      trace?.stop();
-    }
-  }, []);
+  // 데이터 페칭 함수들
+  const fetchActiveUsers = async () => {
+    // Analytics API 구현
+    return 0;
+  };
 
-  const fetchPageViews = useMemo(() => async () => {
-    const trace = startPerformanceTrace('fetch_page_views');
-    try {
-      // Implement your Firebase logic
-      return 0;
-    } finally {
-      trace?.stop();
-    }
-  }, []);
+  const fetchPageViews = async () => {
+    // Analytics API 구현
+    return 0;
+  };
 
-  const fetchVideoPlays = useMemo(() => async () => {
-    const trace = startPerformanceTrace('fetch_video_plays');
-    try {
-      // Implement your Firebase logic
-      return 0;
-    } finally {
-      trace?.stop();
-    }
-  }, []);
+  const fetchVideoPlays = async () => {
+    // Analytics API 구현
+    return 0;
+  };
 
   if (userLoading || coursesLoading || usersLoading || questionsLoading) {
     return (
