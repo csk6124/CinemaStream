@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { recommendationEngine } from "./recommendation";
 import { insertUserSchema, insertCourseSchema, insertQuestionSchema } from "@shared/schema";
 
 // Middleware to check if user is authenticated using Replit
@@ -140,6 +141,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       rating: 4.8
     };
     res.json(movie);
+  });
+
+  // Get personalized movie recommendations
+  app.get("/api/recommendations", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.headers['x-replit-user-id'] as string);
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      const recommendations = await recommendationEngine.getPersonalizedRecommendations(userId, limit);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting recommendations:", error);
+      res.status(500).json({ error: "Failed to get recommendations" });
+    }
+  });
+
+  // Add rating for a movie
+  app.post("/api/movies/:id/rate", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.headers['x-replit-user-id'] as string);
+      const movieId = parseInt(req.params.id);
+      const rating = parseFloat(req.body.rating);
+
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Invalid rating. Must be between 1 and 5" });
+      }
+
+      await storage.addMovieRating(userId, movieId, rating);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding rating:", error);
+      res.status(500).json({ error: "Failed to add rating" });
+    }
+  });
+
+  // Record watch history
+  app.post("/api/movies/:id/watch", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.headers['x-replit-user-id'] as string);
+      const movieId = parseInt(req.params.id);
+      const { duration, completed } = req.body;
+
+      await storage.recordWatchHistory(userId, movieId, duration, completed);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error recording watch history:", error);
+      res.status(500).json({ error: "Failed to record watch history" });
+    }
   });
 
   const httpServer = createServer(app);
