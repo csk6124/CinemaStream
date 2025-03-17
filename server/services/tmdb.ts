@@ -1,6 +1,15 @@
 import axios from 'axios';
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const getTMDBApiKey = () => {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) {
+    console.error('Critical Error: TMDB_API_KEY is not set in environment variables');
+    throw new Error('TMDB_API_KEY is required');
+  }
+  return apiKey;
+};
+
+const TMDB_API_KEY = getTMDBApiKey();
 const BASE_URL = 'https://api.themoviedb.org/3';
 
 if (!TMDB_API_KEY) {
