@@ -21,7 +21,11 @@ export default function Home() {
   // 추천 영화 데이터 가져오기
   const { data: recommendations, isLoading: recommendationsLoading, error } = useQuery({
     queryKey: ["/api/recommendations"],
-    retry: false
+    retry: 3,  // 실패 시 3번까지 재시도
+    retryDelay: 1000, // 1초 간격으로 재시도
+    onError: (error) => {
+      console.error('Failed to fetch recommendations:', error);
+    }
   });
 
   console.log('Recommendations query state:', {
@@ -59,7 +63,11 @@ export default function Home() {
               )
             ))}
           </>
-        ) : null}
+        ) : (
+          <div className="py-8 text-center text-gray-500">
+            {error ? '영화 정보를 불러오는데 실패했습니다.' : '추천 영화가 없습니다.'}
+          </div>
+        )}
       </div>
     </div>
   );

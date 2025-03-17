@@ -3,15 +3,35 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { recommendationEngine } from "./recommendation";
 import { tmdbService } from "./services/tmdb";
-import { insertUserSchema, insertMovieSchema, insertCourseSchema, insertQuestionSchema } from "@shared/schema";
+import { insertUserSchema, insertMovieSchema } from "@shared/schema";
 
-// Middleware to check if user is authenticated using Replit
-const requireAuth = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-replit-user-id'];
-  if (!userId) {
-    return res.status(401).json({ error: "Not authenticated" });
+// Replit 인증 미들웨어 개선
+const requireAuth = async (req: any, res: any, next: any) => {
+  try {
+    const userId = req.headers['x-replit-user-id'];
+    const userName = req.headers['x-replit-user-name'];
+
+    // 개발 환경 또는 테스트용 임시 허용
+    if (process.env.NODE_ENV === 'development') {
+      return next();
+    }
+
+    if (!userId) {
+      console.log('Authentication failed: No user ID provided');
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // 사용자 정보를 요청 객체에 추가
+    req.user = {
+      id: userId,
+      name: userName
+    };
+
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(401).json({ error: "Authentication failed" });
   }
-  next();
 };
 
 // Middleware to check if user is admin
@@ -30,30 +50,37 @@ const requireAdmin = async (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get current user
+  // Get current user endpoint
   app.get("/api/users/me", requireAuth, async (req, res) => {
-    const userId = req.headers['x-replit-user-id'];
-    const userName = req.headers['x-replit-user-name'];
+    try {
+      const userId = req.headers['x-replit-user-id'];
+      const userName = req.headers['x-replit-user-name'];
 
-    // Try to get existing user
-    let user = await storage.getUser(parseInt(userId));
+      console.log('User authentication:', { userId, userName });
 
-    if (!user) {
-      // Create new user if doesn't exist
-      try {
-        user = await storage.createUser({
-          id: parseInt(userId),
-          name: userName,
-          email: `${userName}@repl.it`, // Placeholder email
-          isAdmin: false
-        });
-      } catch (error) {
-        console.error("Error creating user:", error);
-        return res.status(500).json({ error: "Failed to create user" });
+      // Try to get existing user
+      let user = await storage.getUser(parseInt(userId));
+
+      if (!user) {
+        // Create new user if doesn't exist
+        try {
+          user = await storage.createUser({
+            id: parseInt(userId),
+            name: userName,
+            email: `${userName}@repl.it`, // Placeholder email
+            isAdmin: false
+          });
+        } catch (error) {
+          console.error("Error creating user:", error);
+          return res.status(500).json({ error: "Failed to create user" });
+        }
       }
-    }
 
-    res.json(user);
+      res.json(user);
+    } catch (error) {
+      console.error("Error in /api/users/me:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   // Create user
@@ -128,17 +155,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Movie not found" });
       }
 
-      // TMDB 데이터를 우리 앱의 형식으로 변환
       const formattedMovie = {
         id: movie.id,
         title: movie.title,
         description: movie.overview,
         posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
         year: new Date(movie.release_date).getFullYear(),
-        rating: movie.vote_average / 2, // TMDB는 10점 만점, 우리는 5점 만점
-        genres: movie.genre_ids?.map(g => g.toString()) || [],
-        cast: [], // 임시로 빈 배열 전달
-        director: 'Unknown' // 임시 디렉터 정보
+        rating: movie.vote_average / 2,
+        genres: movie.genre_ids?.map(g => g.toString()) || []
       };
 
       res.json(formattedMovie);
@@ -151,7 +175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get personalized movie recommendations
   app.get("/api/recommendations", async (_req, res) => {
     try {
-      console.log('Fetching recommendations...');
+      console.log('Fetching recommendations...', {
+        environment: process.env.NODE_ENV,
+        tmdbKeyExists: !!process.env.TMDB_API_KEY
+      });
 
       // 여러 카테고리의 영화 데이터 가져오기
       const [popular, nowPlaying, topRated, upcoming, action, drama] = await Promise.all([
@@ -191,6 +218,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actionCount: recommendations.action.length,
         dramaCount: recommendations.drama.length
       });
+
+      if (Object.values(recommendations).every(arr => arr.length === 0)) {
+        console.error('No recommendations available from any category');
+        return res.status(500).json({ error: "Failed to fetch recommendations" });
+      }
 
       res.json(recommendations);
     } catch (error) {

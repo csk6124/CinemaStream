@@ -4,7 +4,8 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
 
 if (!TMDB_API_KEY) {
-  console.error('TMDB_API_KEY is not set in environment variables');
+  console.error('Critical Error: TMDB_API_KEY is not set in environment variables');
+  throw new Error('TMDB_API_KEY is required');
 }
 
 export interface TMDBMovie {
@@ -19,8 +20,13 @@ export interface TMDBMovie {
 
 export class TMDBService {
   private static instance: TMDBService;
+
   private constructor() {
-    console.log('TMDB Service initialized. API Key exists:', !!TMDB_API_KEY);
+    console.log('TMDB Service initialized. Environment:', {
+      nodeEnv: process.env.NODE_ENV,
+      apiKeyExists: !!TMDB_API_KEY,
+      baseUrl: BASE_URL
+    });
   }
 
   static getInstance(): TMDBService {
@@ -36,13 +42,22 @@ export class TMDBService {
         throw new Error('TMDB_API_KEY is not set');
       }
 
-      console.log(`Making TMDB API request to ${endpoint}`);
+      console.log(`Making TMDB API request to ${endpoint}`, {
+        params: { ...params, api_key: '***' }
+      });
+
       const response = await axios.get(`${BASE_URL}${endpoint}`, {
         params: {
           api_key: TMDB_API_KEY,
           language: 'ko-KR',
           ...params
         }
+      });
+
+      console.log(`TMDB API response from ${endpoint}:`, {
+        status: response.status,
+        hasData: !!response.data,
+        dataType: response.data ? typeof response.data : null
       });
 
       return response.data;
@@ -104,6 +119,7 @@ export class TMDBService {
 
   async testConnection(): Promise<boolean> {
     try {
+      console.log('Testing TMDB API connection...');
       const config = await this.makeRequest('/configuration');
       console.log('TMDB Configuration:', config);
       return !!config;

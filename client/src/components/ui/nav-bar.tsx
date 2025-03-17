@@ -5,14 +5,17 @@ import { Button } from "./button";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 
 export function NavBar() {
-  // Fetch current user
-  const { data: user } = useQuery({
+  // Fetch current user with proper error handling
+  const { data: user, isLoading } = useQuery({
     queryKey: ["/api/users/me"],
-    retry: false
+    retry: 3,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Failed to fetch user data:', error);
+    }
   });
 
   const handleLogin = () => {
-    // Replit 로그인 페이지로 리다이렉트
     window.location.href = "/__repl";
   };
 
@@ -28,6 +31,9 @@ export function NavBar() {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  // Get user's initial if available, otherwise use fallback
+  const userInitial = user?.name ? user.name[0]?.toUpperCase() : '?';
 
   return (
     <nav className={`fixed top-0 w-full z-50 transition-colors duration-300 ${
@@ -46,12 +52,14 @@ export function NavBar() {
         </div>
 
         <div className="flex items-center space-x-4">
-          {user ? (
+          {isLoading ? (
+            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+          ) : user ? (
             <div className="flex items-center space-x-4">
               <Avatar>
-                <AvatarFallback>{user.name[0].toUpperCase()}</AvatarFallback>
+                <AvatarFallback>{userInitial}</AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">{user.name}</span>
+              <span className="text-sm font-medium">{user.name || 'User'}</span>
             </div>
           ) : (
             <Button onClick={handleLogin}>Sign In with Replit</Button>
