@@ -3,7 +3,7 @@
 
 # Netflix Movie Clone
 
-🌐 **Deployment URL**: [https://cinemastream.replit.app](https://cinemastream.replit.app)
+🌐 **Deployment URL**: [https://cinema-stream-csk6124.replit.app](https://cinema-stream-csk6124.replit.app)
 
 Next.js와 Express를 사용한 Netflix 스타일의 영화 스트리밍 서비스 클론 프로젝트입니다.
 
