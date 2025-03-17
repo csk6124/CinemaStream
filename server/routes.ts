@@ -153,15 +153,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Fetching recommendations...');
 
-      // 인기 영화 리스트 가져오기
-      const popularMovies = await tmdbService.getPopularMovies();
-      console.log('Popular movies count:', popularMovies.length);
-
-      // 비슷한 영화 리스트 가져오기 (첫 번째 영화 기준)
-      const similarMovies = popularMovies.length > 0
-        ? await tmdbService.getSimilarMovies(popularMovies[0].id)
-        : [];
-      console.log('Similar movies count:', similarMovies.length);
+      // 여러 카테고리의 영화 데이터 가져오기
+      const [popular, nowPlaying, topRated, upcoming, action, drama] = await Promise.all([
+        tmdbService.getPopularMovies(),
+        tmdbService.getNowPlayingMovies(),
+        tmdbService.getTopRatedMovies(),
+        tmdbService.getUpcomingMovies(),
+        tmdbService.getMoviesByGenre(28), // 액션 장르 ID
+        tmdbService.getMoviesByGenre(18)  // 드라마 장르 ID
+      ]);
 
       // 영화 정보 포맷팅 함수
       const formatMovie = (movie: any) => ({
@@ -175,14 +175,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 각 카테고리별 영화 리스트 구성
       const recommendations = {
-        popular: popularMovies.slice(0, 10).map(formatMovie),
-        similar: similarMovies.slice(0, 10).map(formatMovie)
+        popular: popular.slice(0, 10).map(formatMovie),
+        nowPlaying: nowPlaying.slice(0, 10).map(formatMovie),
+        topRated: topRated.slice(0, 10).map(formatMovie),
+        upcoming: upcoming.slice(0, 10).map(formatMovie),
+        action: action.slice(0, 10).map(formatMovie),
+        drama: drama.slice(0, 10).map(formatMovie)
       };
 
       console.log('Recommendations response:', {
         popularCount: recommendations.popular.length,
-        similarCount: recommendations.similar.length,
-        sampleMovie: recommendations.popular[0]
+        nowPlayingCount: recommendations.nowPlaying.length,
+        topRatedCount: recommendations.topRated.length,
+        upcomingCount: recommendations.upcoming.length,
+        actionCount: recommendations.action.length,
+        dramaCount: recommendations.drama.length
       });
 
       res.json(recommendations);

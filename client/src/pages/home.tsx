@@ -30,6 +30,16 @@ export default function Home() {
     data: recommendations
   });
 
+  // 카테고리 설정
+  const categories = [
+    { key: 'popular', title: '인기 영화' },
+    { key: 'nowPlaying', title: '현재 상영작' },
+    { key: 'topRated', title: '평점 높은 영화' },
+    { key: 'upcoming', title: '곧 개봉할 영화' },
+    { key: 'action', title: '액션 영화' },
+    { key: 'drama', title: '드라마' }
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <VideoHero />
@@ -39,18 +49,15 @@ export default function Home() {
           <LoadingContentRow />
         ) : recommendations ? (
           <>
-            {recommendations.popular?.length > 0 && (
-              <ContentRow
-                title="인기 영화"
-                content={recommendations.popular}
-              />
-            )}
-            {recommendations.similar?.length > 0 && (
-              <ContentRow
-                title="비슷한 영화"
-                content={recommendations.similar}
-              />
-            )}
+            {categories.map(category => (
+              recommendations[category.key]?.length > 0 && (
+                <ContentRow
+                  key={category.key}
+                  title={category.title}
+                  content={recommendations[category.key]}
+                />
+              )
+            ))}
           </>
         ) : null}
       </div>

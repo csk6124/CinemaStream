@@ -34,27 +34,78 @@ export class TMDBService {
           page
         }
       });
-
-      // 포스터 URL을 완전한 URL로 변환
-      const movies = response.data.results.map((movie: TMDBMovie) => {
-        const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
-        console.log('Movie poster URL:', posterUrl);
-        return {
-          ...movie,
-          poster_path: posterUrl
-        };
-      });
-
-      // 응답 데이터 로깅
-      console.log('TMDB API Response:', {
-        totalResults: response.data.total_results,
-        totalPages: response.data.total_pages,
-        sampleMovie: movies[0]
-      });
-
-      return movies;
+      return response.data.results;
     } catch (error) {
       console.error('Error fetching popular movies:', error);
+      return [];
+    }
+  }
+
+  async getNowPlayingMovies(page: number = 1): Promise<TMDBMovie[]> {
+    try {
+      console.log('Fetching now playing movies...');
+      const response = await axios.get(`${BASE_URL}/movie/now_playing`, {
+        params: {
+          api_key: TMDB_API_KEY,
+          language: 'ko-KR',
+          page
+        }
+      });
+      return response.data.results;
+    } catch (error) {
+      console.error('Error fetching now playing movies:', error);
+      return [];
+    }
+  }
+
+  async getTopRatedMovies(page: number = 1): Promise<TMDBMovie[]> {
+    try {
+      console.log('Fetching top rated movies...');
+      const response = await axios.get(`${BASE_URL}/movie/top_rated`, {
+        params: {
+          api_key: TMDB_API_KEY,
+          language: 'ko-KR',
+          page
+        }
+      });
+      return response.data.results;
+    } catch (error) {
+      console.error('Error fetching top rated movies:', error);
+      return [];
+    }
+  }
+
+  async getUpcomingMovies(page: number = 1): Promise<TMDBMovie[]> {
+    try {
+      console.log('Fetching upcoming movies...');
+      const response = await axios.get(`${BASE_URL}/movie/upcoming`, {
+        params: {
+          api_key: TMDB_API_KEY,
+          language: 'ko-KR',
+          page
+        }
+      });
+      return response.data.results;
+    } catch (error) {
+      console.error('Error fetching upcoming movies:', error);
+      return [];
+    }
+  }
+
+  async getMoviesByGenre(genreId: number, page: number = 1): Promise<TMDBMovie[]> {
+    try {
+      console.log(`Fetching movies for genre ${genreId}...`);
+      const response = await axios.get(`${BASE_URL}/discover/movie`, {
+        params: {
+          api_key: TMDB_API_KEY,
+          language: 'ko-KR',
+          with_genres: genreId,
+          page
+        }
+      });
+      return response.data.results;
+    } catch (error) {
+      console.error('Error fetching movies by genre:', error);
       return [];
     }
   }
@@ -68,14 +119,6 @@ export class TMDBService {
           language: 'ko-KR'
         }
       });
-
-      // 응답 데이터 로깅
-      console.log('Movie details:', {
-        id: response.data.id,
-        title: response.data.title,
-        posterPath: response.data.poster_path
-      });
-
       return response.data;
     } catch (error) {
       console.error('Error fetching movie details:', error);
@@ -114,7 +157,6 @@ export class TMDBService {
     }
   }
 
-  // 테스트 목적의 메서드
   async testConnection(): Promise<boolean> {
     try {
       const response = await axios.get(`${BASE_URL}/configuration`, {
