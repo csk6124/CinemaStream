@@ -38,7 +38,7 @@ export class TMDBService {
       // 포스터 URL을 완전한 URL로 변환
       const movies = response.data.results.map((movie: TMDBMovie) => ({
         ...movie,
-        poster_path: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null
+        poster_path: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.jpg'
       }));
 
       // 응답 데이터 로깅
