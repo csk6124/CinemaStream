@@ -3,6 +3,10 @@ import axios from 'axios';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
 
+if (!TMDB_API_KEY) {
+  console.error('TMDB_API_KEY is not set in environment variables');
+}
+
 export interface TMDBMovie {
   id: number;
   title: string;
@@ -15,7 +19,9 @@ export interface TMDBMovie {
 
 export class TMDBService {
   private static instance: TMDBService;
-  private constructor() {}
+  private constructor() {
+    console.log('TMDB Service initialized. API Key exists:', !!TMDB_API_KEY);
+  }
 
   static getInstance(): TMDBService {
     if (!this.instance) {
@@ -24,148 +30,83 @@ export class TMDBService {
     return this.instance;
   }
 
-  async getPopularMovies(page: number = 1): Promise<TMDBMovie[]> {
+  private async makeRequest<T>(endpoint: string, params: Record<string, any> = {}): Promise<T | null> {
     try {
-      console.log('Fetching popular movies from TMDB...');
-      const response = await axios.get(`${BASE_URL}/movie/popular`, {
+      if (!TMDB_API_KEY) {
+        throw new Error('TMDB_API_KEY is not set');
+      }
+
+      console.log(`Making TMDB API request to ${endpoint}`);
+      const response = await axios.get(`${BASE_URL}${endpoint}`, {
         params: {
           api_key: TMDB_API_KEY,
           language: 'ko-KR',
-          page
+          ...params
         }
       });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error fetching popular movies:', error);
-      return [];
-    }
-  }
 
-  async getNowPlayingMovies(page: number = 1): Promise<TMDBMovie[]> {
-    try {
-      console.log('Fetching now playing movies...');
-      const response = await axios.get(`${BASE_URL}/movie/now_playing`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR',
-          page
-        }
-      });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error fetching now playing movies:', error);
-      return [];
-    }
-  }
-
-  async getTopRatedMovies(page: number = 1): Promise<TMDBMovie[]> {
-    try {
-      console.log('Fetching top rated movies...');
-      const response = await axios.get(`${BASE_URL}/movie/top_rated`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR',
-          page
-        }
-      });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error fetching top rated movies:', error);
-      return [];
-    }
-  }
-
-  async getUpcomingMovies(page: number = 1): Promise<TMDBMovie[]> {
-    try {
-      console.log('Fetching upcoming movies...');
-      const response = await axios.get(`${BASE_URL}/movie/upcoming`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR',
-          page
-        }
-      });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error fetching upcoming movies:', error);
-      return [];
-    }
-  }
-
-  async getMoviesByGenre(genreId: number, page: number = 1): Promise<TMDBMovie[]> {
-    try {
-      console.log(`Fetching movies for genre ${genreId}...`);
-      const response = await axios.get(`${BASE_URL}/discover/movie`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR',
-          with_genres: genreId,
-          page
-        }
-      });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error fetching movies by genre:', error);
-      return [];
-    }
-  }
-
-  async getMovieDetails(movieId: number): Promise<TMDBMovie | null> {
-    try {
-      console.log(`Fetching details for movie ID ${movieId}...`);
-      const response = await axios.get(`${BASE_URL}/movie/${movieId}`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR'
-        }
-      });
       return response.data;
     } catch (error) {
-      console.error('Error fetching movie details:', error);
+      if (axios.isAxiosError(error)) {
+        console.error(`TMDB API Error (${endpoint}):`, {
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data
+        });
+      } else {
+        console.error(`TMDB API Error (${endpoint}):`, error);
+      }
       return null;
     }
   }
 
+  async getPopularMovies(page: number = 1): Promise<TMDBMovie[]> {
+    const data = await this.makeRequest<{results: TMDBMovie[]}>('/movie/popular', { page });
+    return data?.results || [];
+  }
+
+  async getNowPlayingMovies(page: number = 1): Promise<TMDBMovie[]> {
+    const data = await this.makeRequest<{results: TMDBMovie[]}>('/movie/now_playing', { page });
+    return data?.results || [];
+  }
+
+  async getTopRatedMovies(page: number = 1): Promise<TMDBMovie[]> {
+    const data = await this.makeRequest<{results: TMDBMovie[]}>('/movie/top_rated', { page });
+    return data?.results || [];
+  }
+
+  async getUpcomingMovies(page: number = 1): Promise<TMDBMovie[]> {
+    const data = await this.makeRequest<{results: TMDBMovie[]}>('/movie/upcoming', { page });
+    return data?.results || [];
+  }
+
+  async getMoviesByGenre(genreId: number, page: number = 1): Promise<TMDBMovie[]> {
+    const data = await this.makeRequest<{results: TMDBMovie[]}>('/discover/movie', { 
+      with_genres: genreId,
+      page 
+    });
+    return data?.results || [];
+  }
+
+  async getMovieDetails(movieId: number): Promise<TMDBMovie | null> {
+    return this.makeRequest<TMDBMovie>(`/movie/${movieId}`);
+  }
+
   async getSimilarMovies(movieId: number): Promise<TMDBMovie[]> {
-    try {
-      const response = await axios.get(`${BASE_URL}/movie/${movieId}/similar`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR'
-        }
-      });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error fetching similar movies:', error);
-      return [];
-    }
+    const data = await this.makeRequest<{results: TMDBMovie[]}>(`/movie/${movieId}/similar`);
+    return data?.results || [];
   }
 
   async searchMovies(query: string): Promise<TMDBMovie[]> {
-    try {
-      const response = await axios.get(`${BASE_URL}/search/movie`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          language: 'ko-KR',
-          query
-        }
-      });
-      return response.data.results;
-    } catch (error) {
-      console.error('Error searching movies:', error);
-      return [];
-    }
+    const data = await this.makeRequest<{results: TMDBMovie[]}>('/search/movie', { query });
+    return data?.results || [];
   }
 
   async testConnection(): Promise<boolean> {
     try {
-      const response = await axios.get(`${BASE_URL}/configuration`, {
-        params: {
-          api_key: TMDB_API_KEY
-        }
-      });
-      console.log('TMDB Configuration:', response.data);
-      return true;
+      const config = await this.makeRequest('/configuration');
+      console.log('TMDB Configuration:', config);
+      return !!config;
     } catch (error) {
       console.error('TMDB connection test failed:', error);
       return false;
