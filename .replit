@@ -39,3 +39,16 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Run Tests"
+author = 9157837
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run test"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run test:e2e"
