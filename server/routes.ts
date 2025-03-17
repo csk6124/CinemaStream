@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { recommendationEngine } from "./recommendation";
 import { tmdbService } from "./services/tmdb";
-import { insertUserSchema, insertMovieSchema } from "@shared/schema";
+import { insertUserSchema, insertMovieSchema, insertCourseSchema, insertQuestionSchema } from "@shared/schema";
 
 // Middleware to check if user is authenticated using Replit
 const requireAuth = (req: any, res: any, next: any) => {
@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: movie.id,
         title: movie.title,
         description: movie.overview,
-        posterUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
         year: new Date(movie.release_date).getFullYear(),
         rating: movie.vote_average / 2, // TMDB는 10점 만점, 우리는 5점 만점
         genres: movie.genres?.map(g => g.name) || []
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: movie.id,
           title: movie.title,
           description: movie.overview,
-          posterUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+          posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
           year: new Date(movie.release_date).getFullYear(),
           rating: movie.vote_average / 2
         }));

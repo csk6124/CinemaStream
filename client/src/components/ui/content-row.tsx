@@ -21,10 +21,11 @@ interface ContentRowProps {
 const ContentCard = React.memo(({ item }: { item: Movie }) => {
   const [, setLocation] = useLocation();
 
-  // posterUrl이 상대 경로인 경우 TMDB 기본 URL 추가
-  const imageUrl = item.posterUrl?.startsWith('/')
-    ? `https://image.tmdb.org/t/p/w500${item.posterUrl}`
-    : item.posterUrl;
+  // 기본 이미지 URL (포스터가 없는 경우 사용)
+  const defaultImageUrl = "https://via.placeholder.com/500x750?text=No+Poster";
+
+  // TMDB 이미지 URL 처리
+  const imageUrl = item.posterUrl || defaultImageUrl;
 
   return (
     <Card 
@@ -39,6 +40,10 @@ const ContentCard = React.memo(({ item }: { item: Movie }) => {
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = defaultImageUrl;
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
