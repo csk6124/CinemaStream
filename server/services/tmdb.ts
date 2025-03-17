@@ -35,14 +35,20 @@ export class TMDBService {
         }
       });
 
+      // 포스터 URL을 완전한 URL로 변환
+      const movies = response.data.results.map((movie: TMDBMovie) => ({
+        ...movie,
+        poster_path: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null
+      }));
+
       // 응답 데이터 로깅
       console.log('TMDB API Response:', {
         totalResults: response.data.total_results,
         totalPages: response.data.total_pages,
-        sampleMovie: response.data.results[0]
+        sampleMovie: movies[0]
       });
 
-      return response.data.results;
+      return movies;
     } catch (error) {
       console.error('Error fetching popular movies:', error);
       return [];
