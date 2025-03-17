@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { recommendationEngine } from "./recommendation";
-import { insertUserSchema, insertCourseSchema, insertQuestionSchema } from "@shared/schema";
+import { tmdbService } from "./services/tmdb";
+import { insertUserSchema, insertMovieSchema } from "@shared/schema";
 
 // Middleware to check if user is authenticated using Replit
 const requireAuth = (req: any, res: any, next: any) => {
@@ -128,19 +129,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Movie routes
   app.get("/api/movies/:id", async (req, res) => {
-    const movieId = req.params.id;
-    // 임시 데이터
-    const movie = {
-      id: movieId,
-      title: "인터스텔라",
-      description: "인류의 미래를 위해 새로운 거주지를 찾아 우주로 떠나는 탐험대의 이야기",
-      posterUrl: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0",
-      year: 2014,
-      director: "크리스토퍼 놀란",
-      cast: ["매튜 맥커너히", "앤 해서웨이"],
-      rating: 4.8
-    };
-    res.json(movie);
+    try {
+      const movieId = parseInt(req.params.id);
+      const movie = await tmdbService.getMovieDetails(movieId);
+
+      if (!movie) {
+        return res.status(404).json({ error: "Movie not found" });
+      }
+
+      // TMDB 데이터를 우리 앱의 형식으로 변환
+      const formattedMovie = {
+        id: movie.id,
+        title: movie.title,
+        description: movie.overview,
+        posterUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+        year: new Date(movie.release_date).getFullYear(),
+        rating: movie.vote_average / 2, // TMDB는 10점 만점, 우리는 5점 만점
+        genres: movie.genres?.map(g => g.name) || []
+      };
+
+      res.json(formattedMovie);
+    } catch (error) {
+      console.error("Error fetching movie:", error);
+      res.status(500).json({ error: "Failed to fetch movie details" });
+    }
   });
 
   // Get personalized movie recommendations
@@ -149,7 +161,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.headers['x-replit-user-id'] as string);
       const limit = parseInt(req.query.limit as string) || 10;
 
-      const recommendations = await recommendationEngine.getPersonalizedRecommendations(userId, limit);
+      // 사용자의 시청 기록 확인
+      const watchHistory = await storage.getUserWatchHistory(userId);
+      let recommendations = [];
+
+      if (watchHistory.length > 0) {
+        // 시청 기록이 있는 경우, 협업 필터링 기반 추천
+        recommendations = await recommendationEngine.getPersonalizedRecommendations(userId, limit);
+      } else {
+        // 시청 기록이 없는 경우, 인기 영화 추천
+        const popularMovies = await tmdbService.getPopularMovies();
+        recommendations = popularMovies.slice(0, limit).map(movie => ({
+          id: movie.id,
+          title: movie.title,
+          description: movie.overview,
+          posterUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+          year: new Date(movie.release_date).getFullYear(),
+          rating: movie.vote_average / 2
+        }));
+      }
+
       res.json(recommendations);
     } catch (error) {
       console.error("Error getting recommendations:", error);
