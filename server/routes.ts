@@ -8,8 +8,8 @@ import { insertUserSchema, insertMovieSchema } from "@shared/schema";
 // Middleware to check if user is authenticated using Replit
 const requireAuth = async (req: any, res: any, next: any) => {
   try {
-    const userId = req.headers['x-replit-user-id'];
-    const userName = req.headers['x-replit-user-name'];
+    const userId = req.headers['x-replit-user-id'] as string;
+    const userName = req.headers['x-replit-user-name'] as string;
 
     // Allow development environment
     if (process.env.NODE_ENV === 'development') {
@@ -38,8 +38,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user endpoint
   app.get("/api/users/me", requireAuth, async (req, res) => {
     try {
-      const userId = req.headers['x-replit-user-id'];
-      const userName = req.headers['x-replit-user-name'];
+      const userId = req.headers['x-replit-user-id'] as string;
+      const userName = req.headers['x-replit-user-name'] as string;
 
       console.log('User authentication:', { userId, userName });
 
@@ -51,8 +51,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           user = await storage.createUser({
             id: parseInt(userId),
-            name: userName,
-            email: `${userName}@repl.it`, // Placeholder email
+            name: userName || '',
+            email: `${userName || ''}@repl.it`, // Placeholder email
             isAdmin: false
           });
         } catch (error) {
@@ -73,17 +73,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
       const user = await storage.createUser(userData);
-      //req.session.userId = user.id;  // Removed session setting
       res.json(user);
     } catch (error) {
       res.status(400).json({ error: "Invalid user data" });
     }
-  });
-
-  // Get all users (admin only)
-  app.get("/api/users", requireAdmin, async (_req, res) => {
-    const users = await storage.getAllUsers();
-    res.json(users);
   });
 
   // Get user by ID
@@ -93,40 +86,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(user);
     } else {
       res.status(404).json({ error: "User not found" });
-    }
-  });
-
-  // Get all courses (admin only)
-  app.get("/api/courses", requireAdmin, async (_req, res) => {
-    const courses = await storage.getAllCourses();
-    res.json(courses);
-  });
-
-  // Create course (admin only)
-  app.post("/api/courses", requireAdmin, async (req, res) => {
-    try {
-      const courseData = insertCourseSchema.parse(req.body);
-      const course = await storage.createCourse(courseData);
-      res.json(course);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid course data" });
-    }
-  });
-
-  // Get all questions (admin only)
-  app.get("/api/questions", requireAdmin, async (_req, res) => {
-    const questions = await storage.getAllQuestions();
-    res.json(questions);
-  });
-
-  // Create question (admin only)
-  app.post("/api/questions", requireAdmin, async (req, res) => {
-    try {
-      const questionData = insertQuestionSchema.parse(req.body);
-      const question = await storage.createQuestion(questionData);
-      res.json(question);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid question data" });
     }
   });
 
@@ -325,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // TMDB API 테스트 엔드포인트
+  // TMDB API Test endpoints
   app.get("/api/test/tmdb", async (_req, res) => {
     try {
       // API 연결 테스트
@@ -362,60 +321,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // TMDB API 테스트 엔드포인트
-  app.get("/api/test/recommendations", async (_req, res) => {
-    try {
-      console.log('Testing recommendations API...');
-
-      // 1. 인기 영화 가져오기
-      const popularMovies = await tmdbService.getPopularMovies();
-      console.log('Popular movies fetched:', popularMovies.length);
-
-      if (!popularMovies.length) {
-        return res.status(500).json({ error: "Failed to fetch popular movies" });
-      }
-
-      // 2. 비슷한 영화 가져오기
-      const similarMovies = await tmdbService.getSimilarMovies(popularMovies[0].id);
-      console.log('Similar movies fetched:', similarMovies.length);
-
-      // 영화 정보 포맷팅 함수
-      const formatMovie = (movie: any) => ({
-        id: movie.id,
-        title: movie.title,
-        description: movie.overview,
-        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
-        year: new Date(movie.release_date).getFullYear(),
-        rating: movie.vote_average / 2
-      });
-
-      // 3. 추천 응답 구성
-      const recommendations = {
-        popular: popularMovies.slice(0, 10).map(formatMovie),
-        similar: similarMovies.slice(0, 10).map(formatMovie)
-      };
-
-      // 4. 상세 로깅
-      console.log('Test response:', {
-        popularCount: recommendations.popular.length,
-        similarCount: recommendations.similar.length,
-        samplePopular: recommendations.popular[0],
-        sampleSimilar: recommendations.similar[0]
-      });
-
-      res.json(recommendations);
-    } catch (error) {
-      console.error("Error testing recommendations:", error);
-      res.status(500).json({ error: "Failed to test recommendations" });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
 
 const requireAdmin = async (req: any, res: any, next: any) => {
-  const userId = req.headers['x-replit-user-id'];
+  const userId = req.headers['x-replit-user-id'] as string;
   if (!userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
