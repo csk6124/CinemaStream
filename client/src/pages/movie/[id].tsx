@@ -124,7 +124,7 @@ export default function MovieDetail() {
             <div>
               <h3 className="text-lg font-semibold mb-2">출연진</h3>
               <div className="flex flex-wrap gap-2">
-                {movie.cast.map((actor, index) => (
+                {(movie.cast || []).map((actor, index) => (
                   <span
                     key={index}
                     className="px-3 py-1 bg-muted rounded-full text-sm"

@@ -145,7 +145,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
         year: new Date(movie.release_date).getFullYear(),
         rating: movie.vote_average / 2, // TMDB는 10점 만점, 우리는 5점 만점
-        genres: movie.genre_ids?.map(g => g.toString()) || []
+        genres: movie.genre_ids?.map(g => g.toString()) || [],
+        cast: [], // 임시로 빈 배열 전달
+        director: 'Unknown' // 임시 디렉터 정보
       };
 
       res.json(formattedMovie);
