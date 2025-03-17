@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { getAnalytics, logEvent } from "firebase/analytics";
+// import { getAnalytics, logEvent } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,20 +13,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
-const analytics = getAnalytics(app);
+// const analytics = getAnalytics(app);
 const provider = new GoogleAuthProvider();
 
-// 기본 이벤트 로깅 함수
+// 기본 이벤트 로깅 함수 (콘솔로 대체)
 export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string, any>) => {
-  try {
-    if (!analytics) {
-      console.warn("Firebase Analytics is not initialized");
-      return;
-    }
-    logEvent(analytics, eventName, eventParams);
-  } catch (error) {
-    console.error("Analytics event logging failed:", error);
-  }
+  console.log('Analytics Event:', eventName, eventParams);
 };
 
 // 사용자 로그인 이벤트
@@ -65,4 +57,4 @@ export const trackVideoEvent = (eventType: 'play' | 'pause' | 'complete', videoI
   });
 };
 
-export { auth, analytics };
+export { auth };
