@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics, logEvent } from "firebase/analytics";
+import { getPerformance, trace } from "firebase/performance";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -8,30 +9,60 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID, // Analytics 측정 ID 추가
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const analytics = getAnalytics(app);
+const performance = getPerformance(app);
 const provider = new GoogleAuthProvider();
+
+// 성능 모니터링 함수
+export const startPerformanceTrace = (traceName: string) => {
+  try {
+    if (!performance) {
+      console.warn("Firebase Performance is not initialized");
+      return null;
+    }
+    const newTrace = trace(performance, traceName);
+    console.log(`Performance trace started: ${traceName}`);
+    return newTrace;
+  } catch (error) {
+    console.error("Performance trace failed to start:", error);
+    // Firebase Performance 초기화 상태 확인
+    if (!app.options.measurementId) {
+      console.error("Firebase measurementId is missing");
+    }
+    return null;
+  }
+};
 
 // 기본 이벤트 로깅 함수
 export const logAnalyticsEvent = (eventName: string, eventParams?: Record<string, any>) => {
   try {
+    if (!analytics) {
+      console.warn("Firebase Analytics is not initialized");
+      return;
+    }
     logEvent(analytics, eventName, eventParams);
   } catch (error) {
     console.error("Analytics event logging failed:", error);
+    // Analytics 초기화 상태 확인
+    if (!app.options.measurementId) {
+      console.error("Firebase measurementId is missing");
+    }
   }
 };
 
 // 사용자 로그인 이벤트
 export async function signInWithGoogle() {
+  const authTrace = startPerformanceTrace('auth_signin');
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    authTrace?.stop();
 
-    // 로그인 성공 이벤트 기록
     logAnalyticsEvent('login', {
       method: 'google',
       userId: user.uid
@@ -40,6 +71,7 @@ export async function signInWithGoogle() {
     return user;
   } catch (error) {
     console.error("Error signing in with Google:", error);
+    authTrace?.stop();
     throw error;
   }
 }
@@ -60,4 +92,4 @@ export const trackVideoEvent = (eventType: 'play' | 'pause' | 'complete', videoI
   });
 };
 
-export { auth, analytics };
+export { auth, analytics, performance };
