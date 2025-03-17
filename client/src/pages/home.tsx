@@ -1,9 +1,8 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { VideoHero } from "@/components/ui/video-hero";
 import { ContentRow } from "@/components/ui/content-row";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { categories } from "@/data/mock-content";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // 로딩 중인 콘텐츠 카드를 보여주는 컴포넌트
@@ -19,13 +18,16 @@ const LoadingContentRow = () => (
 );
 
 export default function Home() {
-  // 카테고리 데이터 메모이제이션
-  const memoizedCategories = useMemo(() => categories, []);
-
-  // 개인화된 추천 영화 가져오기
-  const { data: recommendations, isLoading: recommendationsLoading } = useQuery({
+  // 추천 영화 데이터 가져오기
+  const { data: recommendations, isLoading: recommendationsLoading, error } = useQuery({
     queryKey: ["/api/recommendations"],
     retry: false
+  });
+
+  console.log('Recommendations query state:', {
+    isLoading: recommendationsLoading,
+    error,
+    data: recommendations
   });
 
   return (
@@ -51,15 +53,6 @@ export default function Home() {
             )}
           </>
         ) : null}
-
-        {/* 기존 카테고리 */}
-        {memoizedCategories.map((category) => (
-          <ContentRow
-            key={category.id}
-            title={category.title}
-            content={category.content}
-          />
-        ))}
       </div>
     </div>
   );

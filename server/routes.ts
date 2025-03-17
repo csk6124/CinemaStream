@@ -8,18 +8,9 @@ import { insertUserSchema, insertMovieSchema, insertCourseSchema, insertQuestion
 // Middleware to check if user is authenticated using Replit
 const requireAuth = (req: any, res: any, next: any) => {
   const userId = req.headers['x-replit-user-id'];
-  const userName = req.headers['x-replit-user-name'];
-
   if (!userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-
-  // Add user info to request
-  req.user = {
-    id: userId,
-    name: userName
-  };
-
   next();
 };
 
@@ -158,18 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get personalized movie recommendations
-  app.get("/api/recommendations", requireAuth, async (req, res) => {
+  app.get("/api/recommendations", async (_req, res) => {
     try {
-      const userId = parseInt(req.headers['x-replit-user-id'] as string);
-      const limit = parseInt(req.query.limit as string) || 10;
+      console.log('Fetching recommendations...');
 
       // 인기 영화 리스트 가져오기
       const popularMovies = await tmdbService.getPopularMovies();
-      
+      console.log('Popular movies count:', popularMovies.length);
+
       // 비슷한 영화 리스트 가져오기 (첫 번째 영화 기준)
-      const similarMovies = popularMovies.length > 0 
+      const similarMovies = popularMovies.length > 0
         ? await tmdbService.getSimilarMovies(popularMovies[0].id)
         : [];
+      console.log('Similar movies count:', similarMovies.length);
 
       // 영화 정보 포맷팅 함수
       const formatMovie = (movie: any) => ({
@@ -183,9 +175,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 각 카테고리별 영화 리스트 구성
       const recommendations = {
-        popular: popularMovies.slice(0, limit).map(formatMovie),
-        similar: similarMovies.slice(0, limit).map(formatMovie)
+        popular: popularMovies.slice(0, 10).map(formatMovie),
+        similar: similarMovies.slice(0, 10).map(formatMovie)
       };
+
+      console.log('Recommendations response:', {
+        popularCount: recommendations.popular.length,
+        similarCount: recommendations.similar.length,
+        sampleMovie: recommendations.popular[0]
+      });
 
       res.json(recommendations);
     } catch (error) {
@@ -262,6 +260,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("TMDB API test failed:", error);
       res.status(500).json({ error: "TMDB API test failed" });
+    }
+  });
+
+  // TMDB API 테스트 엔드포인트
+  app.get("/api/test/recommendations", async (_req, res) => {
+    try {
+      console.log('Testing recommendations API...');
+
+      // 1. 인기 영화 가져오기
+      const popularMovies = await tmdbService.getPopularMovies();
+      console.log('Popular movies fetched:', popularMovies.length);
+
+      if (!popularMovies.length) {
+        return res.status(500).json({ error: "Failed to fetch popular movies" });
+      }
+
+      // 2. 비슷한 영화 가져오기
+      const similarMovies = await tmdbService.getSimilarMovies(popularMovies[0].id);
+      console.log('Similar movies fetched:', similarMovies.length);
+
+      // 영화 정보 포맷팅 함수
+      const formatMovie = (movie: any) => ({
+        id: movie.id,
+        title: movie.title,
+        description: movie.overview,
+        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+        year: new Date(movie.release_date).getFullYear(),
+        rating: movie.vote_average / 2
+      });
+
+      // 3. 추천 응답 구성
+      const recommendations = {
+        popular: popularMovies.slice(0, 10).map(formatMovie),
+        similar: similarMovies.slice(0, 10).map(formatMovie)
+      };
+
+      // 4. 상세 로깅
+      console.log('Test response:', {
+        popularCount: recommendations.popular.length,
+        similarCount: recommendations.similar.length,
+        samplePopular: recommendations.popular[0],
+        sampleSimilar: recommendations.similar[0]
+      });
+
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error testing recommendations:", error);
+      res.status(500).json({ error: "Failed to test recommendations" });
     }
   });
 
