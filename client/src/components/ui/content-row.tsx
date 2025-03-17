@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "./card";
 import { ScrollArea, ScrollBar } from "./scroll-area";
+import { Skeleton } from "./skeleton";
 
 interface Movie {
   id: number;
@@ -20,6 +21,8 @@ interface ContentRowProps {
 // 개별 콘텐츠 카드 컴포넌트 메모이제이션
 const ContentCard = React.memo(({ item }: { item: Movie }) => {
   const [, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   // 기본 이미지 URL (포스터가 없는 경우 사용)
   const defaultImageUrl = "https://via.placeholder.com/500x750?text=No+Poster";
@@ -34,15 +37,23 @@ const ContentCard = React.memo(({ item }: { item: Movie }) => {
       onClick={() => setLocation(`/movie/${item.id}`)}
     >
       <CardContent className="p-0 relative h-[330px]">
+        {isLoading && !hasError && (
+          <div className="absolute inset-0">
+            <Skeleton className="w-full h-full" />
+          </div>
+        )}
         <img 
           src={imageUrl}
           alt={item.title}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
           loading="lazy"
           decoding="async"
+          onLoad={() => setIsLoading(false)}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = defaultImageUrl;
+            setHasError(true);
+            setIsLoading(false);
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">

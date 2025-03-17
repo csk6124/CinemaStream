@@ -4,6 +4,19 @@ import { VideoHero } from "@/components/ui/video-hero";
 import { ContentRow } from "@/components/ui/content-row";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { categories } from "@/data/mock-content";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// 로딩 중인 콘텐츠 카드를 보여주는 컴포넌트
+const LoadingContentRow = () => (
+  <div className="py-6">
+    <Skeleton className="h-8 w-48 mb-4 mx-4" />
+    <div className="flex space-x-4 px-4 pb-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="min-w-[220px] h-[330px]" />
+      ))}
+    </div>
+  </div>
+);
 
 export default function Home() {
   // 카테고리 데이터 메모이제이션
@@ -21,9 +34,7 @@ export default function Home() {
       <div className="container mx-auto -mt-32 relative z-10">
         {/* 개인화된 추천 섹션 */}
         {recommendationsLoading ? (
-          <div className="py-8">
-            <LoadingSpinner variant="netflix" />
-          </div>
+          <LoadingContentRow />
         ) : recommendations?.length > 0 ? (
           <ContentRow
             title="회원님을 위한 추천"
