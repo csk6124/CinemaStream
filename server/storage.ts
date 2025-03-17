@@ -1,7 +1,10 @@
 import { 
   users, type User, type InsertUser,
   courses, type Course, type InsertCourse,
-  questions, type Question, type InsertQuestion 
+  questions, type Question, type InsertQuestion,
+  userJourneyProgress, type UserJourneyProgress, type InsertJourneyProgress,
+  userAchievements, type UserAchievement, type InsertUserAchievement,
+  achievements, type Achievement, type InsertAchievement
 } from "@shared/schema";
 
 export interface IStorage {
@@ -12,33 +15,32 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
 
-  // Course methods
-  getAllCourses(): Promise<Course[]>;
-  getCourse(id: number): Promise<Course | undefined>;
-  createCourse(course: InsertCourse): Promise<Course>;
-  updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course>;
-
-  // Question methods
-  getAllQuestions(): Promise<Question[]>;
-  getQuestion(id: number): Promise<Question | undefined>;
-  createQuestion(question: InsertQuestion): Promise<Question>;
-  updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question>;
+  // User Journey methods
+  getUserJourneyProgress(userId: number): Promise<UserJourneyProgress | undefined>;
+  updateUserJourneyProgress(userId: number, progress: Partial<InsertJourneyProgress>): Promise<UserJourneyProgress>;
+  getUserAchievements(userId: number): Promise<UserAchievement[]>;
+  unlockAchievement(userId: number, achievementId: string): Promise<UserAchievement>;
+  updateAchievementProgress(userId: number, achievementId: string, progress: number): Promise<UserAchievement>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private journeyProgress: Map<number, UserJourneyProgress>;
+  private userAchievements: Map<number, UserAchievement[]>;
   private courses: Map<number, Course>;
   private questions: Map<number, Question>;
   private currentId: number;
 
   constructor() {
     this.users = new Map();
+    this.journeyProgress = new Map();
+    this.userAchievements = new Map();
     this.courses = new Map();
     this.questions = new Map();
     this.currentId = 1;
   }
 
-  // User methods
+  // Existing user methods...
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -60,7 +62,8 @@ export class MemStorage implements IStorage {
       ...insertUser,
       id,
       createdAt: now,
-      isAdmin: insertUser.isAdmin ?? false
+      isAdmin: insertUser.isAdmin ?? false,
+      photoUrl: insertUser.photoUrl ?? null
     };
     this.users.set(id, user);
     return user;
@@ -78,6 +81,80 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+
+  // New User Journey methods
+  async getUserJourneyProgress(userId: number): Promise<UserJourneyProgress | undefined> {
+    return this.journeyProgress.get(userId);
+  }
+
+  async updateUserJourneyProgress(userId: number, progress: Partial<InsertJourneyProgress>): Promise<UserJourneyProgress> {
+    const existingProgress = await this.getUserJourneyProgress(userId);
+    const now = new Date();
+
+    const updatedProgress: UserJourneyProgress = {
+      id: existingProgress?.id ?? this.currentId++,
+      userId,
+      totalWatched: progress.totalWatched ?? existingProgress?.totalWatched ?? 0,
+      totalRated: progress.totalRated ?? existingProgress?.totalRated ?? 0,
+      lastActive: now,
+      watchTime: progress.watchTime ?? existingProgress?.watchTime ?? 0,
+      favoriteGenres: progress.favoriteGenres ?? existingProgress?.favoriteGenres ?? {},
+      achievements: progress.achievements ?? existingProgress?.achievements ?? [],
+      createdAt: existingProgress?.createdAt ?? now,
+      updatedAt: now
+    };
+
+    this.journeyProgress.set(userId, updatedProgress);
+    return updatedProgress;
+  }
+
+  async getUserAchievements(userId: number): Promise<UserAchievement[]> {
+    return this.userAchievements.get(userId) ?? [];
+  }
+
+  async unlockAchievement(userId: number, achievementId: string): Promise<UserAchievement> {
+    const userAchievements = this.userAchievements.get(userId) ?? [];
+    const now = new Date();
+
+    const achievement: UserAchievement = {
+      id: this.currentId++,
+      userId,
+      achievementId,
+      unlockedAt: now,
+      progress: 100,
+      completed: true
+    };
+
+    userAchievements.push(achievement);
+    this.userAchievements.set(userId, userAchievements);
+    return achievement;
+  }
+
+  async updateAchievementProgress(userId: number, achievementId: string, progress: number): Promise<UserAchievement> {
+    const userAchievements = this.userAchievements.get(userId) ?? [];
+    const existingAchievement = userAchievements.find(a => a.achievementId === achievementId);
+
+    if (existingAchievement) {
+      existingAchievement.progress = progress;
+      existingAchievement.completed = progress >= 100;
+      if (existingAchievement.completed && !existingAchievement.unlockedAt) {
+        existingAchievement.unlockedAt = new Date();
+      }
+    } else {
+      const newAchievement: UserAchievement = {
+        id: this.currentId++,
+        userId,
+        achievementId,
+        unlockedAt: progress >= 100 ? new Date() : null,
+        progress,
+        completed: progress >= 100
+      };
+      userAchievements.push(newAchievement);
+    }
+
+    this.userAchievements.set(userId, userAchievements);
+    return existingAchievement ?? userAchievements[userAchievements.length - 1];
   }
 
   // Course methods

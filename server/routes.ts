@@ -5,13 +5,13 @@ import { recommendationEngine } from "./recommendation";
 import { tmdbService } from "./services/tmdb";
 import { insertUserSchema, insertMovieSchema } from "@shared/schema";
 
-// Replit 인증 미들웨어 개선
+// Middleware to check if user is authenticated using Replit
 const requireAuth = async (req: any, res: any, next: any) => {
   try {
     const userId = req.headers['x-replit-user-id'];
     const userName = req.headers['x-replit-user-name'];
 
-    // 개발 환경 또는 테스트용 임시 허용
+    // Allow development environment
     if (process.env.NODE_ENV === 'development') {
       return next();
     }
@@ -21,7 +21,7 @@ const requireAuth = async (req: any, res: any, next: any) => {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // 사용자 정보를 요청 객체에 추가
+    // Add user info to request
     req.user = {
       id: userId,
       name: userName
@@ -32,21 +32,6 @@ const requireAuth = async (req: any, res: any, next: any) => {
     console.error('Authentication error:', error);
     res.status(401).json({ error: "Authentication failed" });
   }
-};
-
-// Middleware to check if user is admin
-const requireAdmin = async (req: any, res: any, next: any) => {
-  const userId = req.headers['x-replit-user-id'];
-  if (!userId) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
-  const user = await storage.getUser(parseInt(userId));
-  if (!user?.isAdmin) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
-
-  next();
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -231,7 +216,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add rating for a movie
+  // User Journey endpoints
+  app.get("/api/users/me/progress", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.headers['x-replit-user-id'] as string);
+      const progress = await storage.getUserJourneyProgress(userId);
+
+      if (!progress) {
+        // Initialize progress if it doesn't exist
+        const newProgress = await storage.updateUserJourneyProgress(userId, {
+          totalWatched: 0,
+          totalRated: 0,
+          watchTime: 0,
+          favoriteGenres: {},
+          achievements: []
+        });
+        return res.json(newProgress);
+      }
+
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching user progress:", error);
+      res.status(500).json({ error: "Failed to fetch user progress" });
+    }
+  });
+
+  app.get("/api/users/me/achievements", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.headers['x-replit-user-id'] as string);
+      const achievements = await storage.getUserAchievements(userId);
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ error: "Failed to fetch user achievements" });
+    }
+  });
+
+  // Record movie watch progress
+  app.post("/api/movies/:id/watch", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.headers['x-replit-user-id'] as string);
+      const movieId = parseInt(req.params.id);
+      const { duration, completed } = req.body;
+
+      // Update watch history
+      const progress = await storage.getUserJourneyProgress(userId);
+      await storage.updateUserJourneyProgress(userId, {
+        totalWatched: (progress?.totalWatched ?? 0) + (completed ? 1 : 0),
+        watchTime: (progress?.watchTime ?? 0) + duration
+      });
+
+      // Check for achievements
+      if (completed) {
+        const totalWatched = (progress?.totalWatched ?? 0) + 1;
+
+        // Movie Watcher achievements
+        if (totalWatched === 1) {
+          await storage.unlockAchievement(userId, 'first-movie');
+        }
+        if (totalWatched === 10) {
+          await storage.unlockAchievement(userId, 'movie-buff');
+        }
+        if (totalWatched === 50) {
+          await storage.unlockAchievement(userId, 'movie-expert');
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error recording watch history:", error);
+      res.status(500).json({ error: "Failed to record watch history" });
+    }
+  });
+
+  // Update movie rating
   app.post("/api/movies/:id/rate", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.headers['x-replit-user-id'] as string);
@@ -242,26 +300,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid rating. Must be between 1 and 5" });
       }
 
-      await storage.addMovieRating(userId, movieId, rating);
+      // Update user journey progress
+      const progress = await storage.getUserJourneyProgress(userId);
+      await storage.updateUserJourneyProgress(userId, {
+        totalRated: (progress?.totalRated ?? 0) + 1
+      });
+
+      // Check for rating achievements
+      const totalRated = (progress?.totalRated ?? 0) + 1;
+      if (totalRated === 1) {
+        await storage.unlockAchievement(userId, 'first-rating');
+      }
+      if (totalRated === 10) {
+        await storage.unlockAchievement(userId, 'rating-enthusiast');
+      }
+      if (totalRated === 50) {
+        await storage.unlockAchievement(userId, 'rating-expert');
+      }
+
       res.json({ success: true });
     } catch (error) {
       console.error("Error adding rating:", error);
       res.status(500).json({ error: "Failed to add rating" });
-    }
-  });
-
-  // Record watch history
-  app.post("/api/movies/:id/watch", requireAuth, async (req, res) => {
-    try {
-      const userId = parseInt(req.headers['x-replit-user-id'] as string);
-      const movieId = parseInt(req.params.id);
-      const { duration, completed } = req.body;
-
-      await storage.recordWatchHistory(userId, movieId, duration, completed);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error recording watch history:", error);
-      res.status(500).json({ error: "Failed to record watch history" });
     }
   });
 
@@ -353,3 +413,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+const requireAdmin = async (req: any, res: any, next: any) => {
+  const userId = req.headers['x-replit-user-id'];
+  if (!userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const user = await storage.getUser(parseInt(userId));
+  if (!user?.isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  next();
+};

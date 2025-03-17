@@ -45,9 +45,15 @@ export function NavBar() {
             <h1 className="text-2xl font-bold text-primary cursor-pointer">NetflixClone</h1>
           </Link>
           <div className="hidden md:flex space-x-4">
-            <Button variant="ghost">TV Shows</Button>
-            <Button variant="ghost">Movies</Button>
-            <Button variant="ghost">New & Popular</Button>
+            <Button variant="ghost" asChild>
+              <Link href="/movies">영화</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/tv">TV 프로그램</Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/new">신작</Link>
+            </Button>
           </div>
         </div>
 
@@ -56,9 +62,11 @@ export function NavBar() {
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
             <div className="flex items-center space-x-4">
-              <Avatar>
-                <AvatarFallback>{userInitial}</AvatarFallback>
-              </Avatar>
+              <Link href="/profile">
+                <Avatar className="cursor-pointer">
+                  <AvatarFallback>{userInitial}</AvatarFallback>
+                </Avatar>
+              </Link>
               <span className="text-sm font-medium">{user.name || 'User'}</span>
             </div>
           ) : (
