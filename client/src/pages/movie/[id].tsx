@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Heart, Star, Calendar, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,8 @@ interface Movie {
 }
 
 export default function MovieDetail() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id;
   const { toast } = useToast();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [liked, setLiked] = useState(false);
@@ -37,7 +37,7 @@ export default function MovieDetail() {
           variant: "destructive"
         });
       });
-  }, [id]);
+  }, [id, toast]);
 
   const handleLike = () => {
     setLiked(!liked);
