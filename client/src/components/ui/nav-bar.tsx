@@ -3,8 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "./button";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
+import { Menu, X } from "lucide-react";
 
 export function NavBar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
   // Fetch current user with proper error handling
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/users/me"],
@@ -19,14 +23,13 @@ export function NavBar() {
     window.location.href = "/__repl";
   };
 
-  const [scrolled, setScrolled] = useState(false);
-
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    // Add passive event listener for better scroll performance
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
@@ -44,6 +47,7 @@ export function NavBar() {
           <Link href="/">
             <h1 className="text-2xl font-bold text-primary cursor-pointer">NetflixClone</h1>
           </Link>
+          {/* Desktop Menu */}
           <div className="hidden md:flex space-x-4">
             <Button variant="ghost" asChild>
               <Link href="/movies">영화</Link>
@@ -58,6 +62,16 @@ export function NavBar() {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Mobile Menu Button */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+
           {isLoading ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
@@ -67,13 +81,30 @@ export function NavBar() {
                   <AvatarFallback>{userInitial}</AvatarFallback>
                 </Avatar>
               </Link>
-              <span className="text-sm font-medium">{user.name || 'User'}</span>
+              <span className="hidden md:inline text-sm font-medium">{user.name || 'User'}</span>
             </div>
           ) : (
             <Button onClick={handleLogin}>Sign In with Replit</Button>
           )}
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-background border-t">
+          <div className="container mx-auto py-4 space-y-2">
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/movies">영화</Link>
+            </Button>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/tv">TV 프로그램</Link>
+            </Button>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/new">신작</Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

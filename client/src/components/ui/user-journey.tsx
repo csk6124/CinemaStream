@@ -88,38 +88,38 @@ export function UserJourney() {
   }
 
   return (
-    <div className="space-y-8 p-4">
+    <div className="space-y-6 p-4 md:p-6">
       {/* 시청 통계 */}
-      <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-4">시청 통계</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center space-x-4">
-            <Film className="h-8 w-8 text-primary" />
+      <Card className="p-4 md:p-6">
+        <h2 className="text-xl md:text-2xl font-bold mb-4">시청 통계</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="flex items-center space-x-4 p-3 rounded-lg bg-muted/5">
+            <Film className="h-8 w-8 text-primary shrink-0" />
             <div>
               <p className="text-sm text-muted-foreground">시청한 영화</p>
-              <p className="text-2xl font-bold">{progress?.totalWatched || 0}편</p>
+              <p className="text-xl md:text-2xl font-bold">{progress?.totalWatched || 0}편</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <Star className="h-8 w-8 text-primary" />
+          <div className="flex items-center space-x-4 p-3 rounded-lg bg-muted/5">
+            <Star className="h-8 w-8 text-primary shrink-0" />
             <div>
               <p className="text-sm text-muted-foreground">평가한 영화</p>
-              <p className="text-2xl font-bold">{progress?.totalRated || 0}편</p>
+              <p className="text-xl md:text-2xl font-bold">{progress?.totalRated || 0}편</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <Clock className="h-8 w-8 text-primary" />
+          <div className="flex items-center space-x-4 p-3 rounded-lg bg-muted/5">
+            <Clock className="h-8 w-8 text-primary shrink-0" />
             <div>
               <p className="text-sm text-muted-foreground">총 시청 시간</p>
-              <p className="text-2xl font-bold">{formatWatchTime(progress?.watchTime || 0)}</p>
+              <p className="text-xl md:text-2xl font-bold">{formatWatchTime(progress?.watchTime || 0)}</p>
             </div>
           </div>
         </div>
       </Card>
 
       {/* 업적 */}
-      <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-4">업적</h2>
+      <Card className="p-4 md:p-6">
+        <h2 className="text-xl md:text-2xl font-bold mb-4">업적</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {achievements?.map((achievement) => {
             const details = ACHIEVEMENT_DETAILS[achievement.achievementId];
@@ -128,7 +128,7 @@ export function UserJourney() {
             return (
               <div
                 key={achievement.id}
-                className={`flex items-center space-x-4 p-4 rounded-lg border ${
+                className={`flex items-center space-x-4 p-4 rounded-lg border transition-colors ${
                   achievement.completed
                     ? "bg-primary/10 border-primary"
                     : "bg-muted border-muted-foreground"
@@ -146,7 +146,7 @@ export function UserJourney() {
                   />
                 </div>
                 {achievement.completed && (
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="shrink-0">
                     달성!
                   </Badge>
                 )}
