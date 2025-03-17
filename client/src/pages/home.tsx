@@ -35,11 +35,21 @@ export default function Home() {
         {/* 개인화된 추천 섹션 */}
         {recommendationsLoading ? (
           <LoadingContentRow />
-        ) : recommendations?.length > 0 ? (
-          <ContentRow
-            title="회원님을 위한 추천"
-            content={recommendations}
-          />
+        ) : recommendations ? (
+          <>
+            {recommendations.popular?.length > 0 && (
+              <ContentRow
+                title="인기 영화"
+                content={recommendations.popular}
+              />
+            )}
+            {recommendations.similar?.length > 0 && (
+              <ContentRow
+                title="비슷한 영화"
+                content={recommendations.similar}
+              />
+            )}
+          </>
         ) : null}
 
         {/* 기존 카테고리 */}

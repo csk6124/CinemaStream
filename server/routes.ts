@@ -163,16 +163,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.headers['x-replit-user-id'] as string);
       const limit = parseInt(req.query.limit as string) || 10;
 
-      // 시청 기록이 없는 경우, 인기 영화 추천
+      // 인기 영화 리스트 가져오기
       const popularMovies = await tmdbService.getPopularMovies();
-      const recommendations = popularMovies.slice(0, limit).map(movie => ({
+      
+      // 비슷한 영화 리스트 가져오기 (첫 번째 영화 기준)
+      const similarMovies = popularMovies.length > 0 
+        ? await tmdbService.getSimilarMovies(popularMovies[0].id)
+        : [];
+
+      // 영화 정보 포맷팅 함수
+      const formatMovie = (movie: any) => ({
         id: movie.id,
         title: movie.title,
         description: movie.overview,
-        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : "https://via.placeholder.com/500x750?text=No+Poster",
+        posterUrl: movie.poster_path,
         year: new Date(movie.release_date).getFullYear(),
         rating: movie.vote_average / 2
-      }));
+      });
+
+      // 각 카테고리별 영화 리스트 구성
+      const recommendations = {
+        popular: popularMovies.slice(0, limit).map(formatMovie),
+        similar: similarMovies.slice(0, limit).map(formatMovie)
+      };
 
       res.json(recommendations);
     } catch (error) {
